@@ -1,0 +1,40 @@
+---
+output:
+  pdf_document: default
+  output_file: "analysis_output.pdf"
+---
+# R Assignment
+
+## Data Inspection
+
+### Attributes of `fang_et_al_genotypes`
+
+I ran the following code to analyze the fang_et_al_genotypes.txt file.
+
+```{R}
+# Loaded needed libraries
+library(tidyr)
+library(tidyverse)
+
+# Saved file data as a dataframe
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+
+# I checked how large the file size is in MB
+file_size <- file.info(file_path)[1,1]/1000000
+print(file_size)
+
+# I inspected the data frame dimensions
+dim(raw_data)
+
+# I checked the first few and last few lines of the file
+head(raw_data)
+tail(raw_data)
+
+# I checked the file encoding using the unix command
+command <- sprintf("file %s",file_path)
+system(command)
+
+
+```
+
