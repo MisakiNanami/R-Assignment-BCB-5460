@@ -24,10 +24,10 @@ raw_data <- read_delim(file_path, delim="\t")
 file_size <- file.info(file_path)[1,1]/1000000
 print(file_size)
 
-# I inspected the data frame dimensions
+# I inspected the data frame dimensions (returns rows and columns)
 dim(raw_data)
 
-# I checked the first few and last few lines of the file
+# I checked the first few and last few lines of the file to check for metadata
 head(raw_data)
 tail(raw_data)
 
@@ -35,6 +35,109 @@ tail(raw_data)
 command <- sprintf("file %s",file_path)
 system(command)
 
+# I also checked the head and tail data for the last columns since 
+# it was cutoff previously.
+get_last_columns <- function(data, columns_to_return = 9) {
+  last_column <- ncol(data)
+  last_n_columns <- data.frame(data[,(last_column-columns_to_return+1):last_column])
+  return(last_n_columns)
+}
+last_columns_data <- get_last_columns(raw_data)
 
+head(last_columns_data)
+tail(last_columns_data)
+
+# I checked to see if any of the SNPs had no missing data and I also checked for maximums and minimums
+count_missing <- function(data) {
+  length(grep("\\?",data))
+}
+SNP_missing_count <- sapply(raw_data[,4:ncol(raw_data)],count_missing)
+tabulated_SNP<- sort(SNP_missing_count)
+head(tabulated_SNP, n = 3)
+tail(tabulated_SNP, n = 3)
+
+# I checked if there were any samples which did not have missing data as well as finding the
+# samples with the most and least missing data.
+sample_missing_count <- apply(raw_data,1,count_missing)
+row_names <- unlist(raw_data[,1],use.names = FALSE)
+names(sample_missing_count) <- row_names
+head(sample_missing_count, n=10)
+sample_missing_count[sample_missing_count == 0]
+sample_missing_count[sample_missing_count == max(sample_missing_count)]
+sample_missing_count[sample_missing_count == min(sample_missing_count)]
+
+# I checked what the most common gene groups were:
+groups <- unlist(raw_data[,3],use.names = FALSE)
+tabulated_groups<- sort(table(groups))
+head(tabulated_groups, n = 3)
+tail(tabulated_groups, n = 3)
 ```
 
+By inspecting this file I learned that:
+
+- There are 2,783 lines in the file with a file size of 11.06 MB. Thus, there are not many lines, but there appear to be a lot of words and characters relatively speaking. This is due to there being a large number of columns on each line, one for each single nucleotide polymorphisms (SNP) in the sample along with some metadata.
+- Since only the first line of the file contained metadata with the head camp, and since the tail doesn't show any metadata, it appears there is only metadata for the first row. This implies there are 2,782 samples in the SNP dataset.
+- Inspecting the number of columns, I got 986. Since the first three columns are metadata (sample ID, JG_OTU, and group), this appears to imply each sample has info on 983 SNPs.
+- There is missing data for some of the SNPs with "?/?" appearing. I couldn't find any sample which did not have "?/?" for at least one SNP using grep. Thus, I assume this is pretty common.
+  - The most common SNP with missing data is PZB01223.4 at 509 samples with missing data at that location while the PZA00538.8 SNP has the least missing data at only 6.
+  - The most common sample with missing data is TAMex0516.1 at 398 SNPs with missing data while DOE5H-1556 has the lowest at 5. 
+- The file is ASCII text, with very long lines.
+- There were no duplicate gene types, but there were duplicate groups with the largest being the ZMMLR group at 1256 members. The smallest was the ZMXNT group at 4 members.
+
+### Attributes of `snp_position.txt`
+
+I ran the following code to analyze the snp_position.txt file.
+
+```{R}
+# Saved file data as a dataframe
+file_path <- "snp_position.txt"
+raw_data <- read_delim(file_path, delim="\t")
+
+# I checked how large the file size is in MB
+file_size <- file.info(file_path)[1,1]/1000000
+print(file_size)
+
+# I inspected the data frame dimensions (returns rows and columns)
+dim(raw_data)
+
+# I checked the first few and last few lines of the file to check for metadata
+head(raw_data)
+tail(raw_data)
+
+# I checked the file encoding using the unix command
+command <- sprintf("file %s",file_path)
+system(command)
+
+# I also checked the head and tail data for the last columns since 
+# it was cutoff previously.
+get_last_columns <- function(data, columns_to_return = 9) {
+  last_column <- ncol(data)
+  last_n_columns <- data.frame(data[,(last_column-columns_to_return+1):last_column])
+  return(last_n_columns)
+}
+last_columns_data <- get_last_columns(raw_data)
+
+head(last_columns_data)
+tail(last_columns_data)
+
+# I checked what the most common chromosomes were:
+chromosomes <- unlist(raw_data[,3],use.names = FALSE)
+tabulated_chromosomes<- sort(table(chromosomes))
+head(tabulated_chromosomes, n = 3)
+tail(tabulated_chromosomes, n = 3)
+
+# I checked what the most common genes were:
+genes <- unlist(raw_data[,9],use.names = FALSE)
+tabulated_genes<- sort(table(genes))
+head(tabulated_genes, n = 3)
+tail(tabulated_genes, n = 3)
+```
+
+By inspecting this file I learned that:
+
+- There are 984 lines in the file with a file size of 83 KB. Thus, the file is considerably smaller than the fang_et_al_genotypes.txt file as expected.
+- The file doesn't appear to have any metadata with the only the first line providing the column names, with there appearing to be 15 columns. Thus, there appear to be 983 individual SNPs documented in the file.
+	- From looking at the first 15 lines in the file (only the first 9 columns) it did not appear that there was any missing data. I would search for it, but since it is not obvious how it would be documented, I can't easily grep for it.
+- The file is ASCII text, without very long lines.
+- The most common chromosomes containing a SNP were chromosomes 1 (155 SNPs), 2 (127 SNPs) and 5 (122 SNPs). The lowest was chromosome 10 at 53 SNPs.
+-  The most common genes containing SNPs were zmm28 (11 SNPs), PZA03450 (9 SNPs), and zag1 (8 SNPs). 
