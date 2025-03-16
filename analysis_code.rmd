@@ -78,7 +78,7 @@ By inspecting this file I learned that:
 - There are 2,783 lines in the file with a file size of 11.06 MB. Thus, there are not many lines, but there appear to be a lot of words and characters relatively speaking. This is due to there being a large number of columns on each line, one for each single nucleotide polymorphisms (SNP) in the sample along with some metadata.
 - Since only the first line of the file contained metadata with the head camp, and since the tail doesn't show any metadata, it appears there is only metadata for the first row. This implies there are 2,782 samples in the SNP dataset.
 - Inspecting the number of columns, I got 986. Since the first three columns are metadata (sample ID, JG_OTU, and group), this appears to imply each sample has info on 983 SNPs.
-- There is missing data for some of the SNPs with "?/?" appearing. I couldn't find any sample which did not have "?/?" for at least one SNP using grep. Thus, I assume this is pretty common.
+- There is missing data for some of the SNPs with "?/?" appearing. I couldn't find any sample which did not have "?/?" for at least one SNP. Thus, I assume this is pretty common.
   - The most common SNP with missing data is PZB01223.4 at 509 samples with missing data at that location while the PZA00538.8 SNP has the least missing data at only 6.
   - The most common sample with missing data is TAMex0516.1 at 398 SNPs with missing data while DOE5H-1556 has the lowest at 5. 
 - The file is ASCII text, with very long lines.
@@ -141,3 +141,217 @@ By inspecting this file I learned that:
 - The file is ASCII text, without very long lines.
 - The most common chromosomes containing a SNP were chromosomes 1 (155 SNPs), 2 (127 SNPs) and 5 (122 SNPs). The lowest was chromosome 10 at 53 SNPs.
 -  The most common genes containing SNPs were zmm28 (11 SNPs), PZA03450 (9 SNPs), and zag1 (8 SNPs). 
+
+## Data Processing
+
+### Maize Data Processing
+
+I processed the maize data into the requested files using the following code. The output files are stored under the "maize" subfolder in the repository.
+
+I first removed the output folders and files if they already exist. This is because when I'm making the chromosome subfiles, I append data to the end of them. Thus, if the files already exist, it will duplicate the data in the file. 
+
+```{R}
+main_dir <- getwd()
+sub_dir <- "maize"
+output_dir <- paste(main_dir,sub_dir, sep="/")
+unlink(output_dir, recursive = TRUE)
+```
+
+I next create the output folders and the increasing/decreasing subfolders for the desired output files.
+
+```{R}
+main_dir <- paste(getwd(),"maize", sep="/")
+sub_dir <- c("increasing","decreasing")
+list_of_paths <- paste(main_dir,sub_dir, sep="/")
+sapply(list_of_paths,dir.create, recursive = TRUE)
+```
+
+I next prepare the raw data from fang_et_al_genotypes.txt by extracting it the desired columns, arranging them, and transposing them.
+
+```{R}
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+extracted_data <- filter(raw_data, `Group` %in% c("ZMMIL", "ZMMLR", "ZMMMR"))
+extracted_data <- arrange(extracted_data, `Sample_ID`)
+transposed_data <- as_tibble(t(extracted_data[,4:ncol(extracted_data)]),rownames = "SNP_ID")
+colnames(transposed_data) <- c("SNP_ID",unlist(extracted_data[1:nrow(extracted_data),1]), use.names = FALSE)
+head(extracted_data)
+head(transposed_data)
+```
+
+I next load the data from the snp_position.tx file and merge the desired columns with the extracted fang_et_al_genotypes.txt data.
+
+```{R}
+snp_data = read_delim("snp_position.txt", "\t")
+merged_data <- merge(snp_data[,c(1,3,4)], transposed_data, by="SNP_ID", all = TRUE)
+merged_data <- as_tibble(merged_data)
+head(merged_data)
+```
+
+I sorted the data based on position, making sure to convert position to numeric before doing so. 
+
+```{R}
+merged_data$Position <- as.numeric(merged_data$Position)
+merged_data <- arrange(merged_data, `Position`)
+```
+
+I next generated the chromosome files for chromsomes 1-10 for the increasing position order, omitting the NA entries that correspond to multiple or unknown chromosome positions.
+
+```{R}
+make_chromosome_file <- function(dataset_row, species, order, missing_marker, dataset){
+  dataset_row <- gsub("\\?", missing_marker, dataset_row)
+  dataset_row <- as.data.frame(t(dataset_row))
+  chromosome <- dataset_row["Chromosome"]
+  output_file <- sprintf("%s/%s/%s/chromosome_%s.txt",getwd(),species,order,chromosome)
+  if (file.exists(output_file) == FALSE) {
+            write.table(
+              t(colnames(dataset)), output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+  }
+  write.table(
+    dataset_row, output_file, sep="\t", row.names = FALSE, 
+    col.names = FALSE, append = TRUE, quote = FALSE)
+}
+
+merged_data_filtered <- filter(merged_data, !is.na(Position))
+apply(merged_data_filtered,1,make_chromosome_file,species="maize",order="increasing", missing_marker="\\?",dataset=merged_data_filtered)
+```
+
+I next prepared the chromsome files for decreasing position order, making sure to specify the missing marker symbol as "-" not the "?" symbol.
+
+```{R}
+merged_data_filtered <- arrange(merged_data_filtered, desc(`Position`))
+apply(merged_data_filtered,1,make_chromosome_file,species="maize",order="decreasing", missing_marker="\\-",dataset=merged_data_filtered)
+```
+
+I next prepared the chromosome files for the multiple and unknown positions.
+
+```{R}
+make_misc_file <- function(dataset_row, species,dataset){
+  dataset_row <- as.data.frame(t(dataset_row))
+  chromosome <- dataset_row["Chromosome"]
+  position <- dataset_row["Position"]
+  output_file <- sprintf("%s/%s/chromosome_%s.txt",getwd(),species,chromosome)
+  if (is.na(position) == TRUE){
+    if ((chromosome %in% c("multiple", "unknown")) == FALSE){
+      chromosome <- "multiple"
+      output_file <- sprintf("%s/%s/chromosome_%s.txt",getwd(),species,chromosome)
+    }
+    if (file.exists(output_file) == FALSE) {
+            write.table(
+              t(colnames(dataset)), output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+    }
+            write.table(
+              dataset_row, output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+  }
+}
+apply(merged_data,1, make_misc_file, species="maize",dataset=merged_data)
+```
+
+### Teosinte Data Processing
+
+I processed the teosinte data into the requested files using the following code. The output files are stored under the "teosinte" subfolder in the repository.
+
+I first removed the output folders and files if they already exist. This is because when I'm making the chromosome subfiles, I append data to the end of them. Thus, if the files already exist, it will duplicate the data in the file. 
+
+```{R}
+main_dir <- getwd()
+sub_dir <- "teosinte"
+output_dir <- paste(main_dir,sub_dir, sep="/")
+unlink(output_dir, recursive = TRUE)
+```
+
+I next create the output folders and the increasing/decreasing subfolders for the desired output files.
+
+```{R}
+main_dir <- paste(getwd(),"teosinte", sep="/")
+sub_dir <- c("increasing","decreasing")
+list_of_paths <- paste(main_dir,sub_dir, sep="/")
+sapply(list_of_paths,dir.create, recursive = TRUE)
+```
+
+I next prepare the raw data from fang_et_al_genotypes.txt by extracting it the desired columns, arranging them, and transposing them.
+
+```{R}
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+extracted_data <- filter(raw_data, `Group` %in% c("ZMPBA", "ZMPIL", "ZMPJA"))
+extracted_data <- arrange(extracted_data, `Sample_ID`)
+transposed_data <- as_tibble(t(extracted_data[,4:ncol(extracted_data)]),rownames = "SNP_ID")
+colnames(transposed_data) <- c("SNP_ID",unlist(extracted_data[1:nrow(extracted_data),1]), use.names = FALSE)
+head(extracted_data)
+head(transposed_data)
+```
+
+I next load the data from the snp_position.tx file and merge the desired columns with the extracted fang_et_al_genotypes.txt data.
+
+```{R}
+snp_data = read_delim("snp_position.txt", "\t")
+merged_data <- merge(snp_data[,c(1,3,4)], transposed_data, by="SNP_ID", all = TRUE)
+merged_data <- as_tibble(merged_data)
+head(merged_data)
+```
+
+I sorted the data based on position, making sure to convert position to numeric before doing so. 
+
+```{R}
+merged_data$Position <- as.numeric(merged_data$Position)
+merged_data <- arrange(merged_data, `Position`)
+```
+
+I next generated the chromosome files for chromsomes 1-10 for the increasing position order, omitting the NA entries that correspond to multiple or unknown chromosome positions.
+
+```{R}
+make_chromosome_file <- function(dataset_row, species, order, missing_marker, dataset){
+  dataset_row <- gsub("\\?", missing_marker, dataset_row)
+  dataset_row <- as.data.frame(t(dataset_row))
+  chromosome <- dataset_row["Chromosome"]
+  output_file <- sprintf("%s/%s/%s/chromosome_%s.txt",getwd(),species,order,chromosome)
+  if (file.exists(output_file) == FALSE) {
+            write.table(
+              t(colnames(dataset)), output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+  }
+  write.table(
+    dataset_row, output_file, sep="\t", row.names = FALSE, 
+    col.names = FALSE, append = TRUE, quote = FALSE)
+}
+
+merged_data_filtered <- filter(merged_data, !is.na(Position))
+apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="increasing", missing_marker="\\?",dataset=merged_data_filtered)
+```
+
+I next prepared the chromsome files for decreasing position order, making sure to specify the missing marker symbol as "-" not the "?" symbol.
+
+```{R}
+merged_data_filtered <- arrange(merged_data_filtered, desc(`Position`))
+apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="decreasing", missing_marker="\\-",dataset=merged_data_filtered)
+```
+
+I next prepared the chromosome files for the multiple and unknown positions.
+
+```{R}
+make_misc_file <- function(dataset_row, species,dataset){
+  dataset_row <- as.data.frame(t(dataset_row))
+  chromosome <- dataset_row["Chromosome"]
+  position <- dataset_row["Position"]
+  output_file <- sprintf("%s/%s/chromosome_%s.txt",getwd(),species,chromosome)
+  if (is.na(position) == TRUE){
+    if ((chromosome %in% c("multiple", "unknown")) == FALSE){
+      chromosome <- "multiple"
+      output_file <- sprintf("%s/%s/chromosome_%s.txt",getwd(),species,chromosome)
+    }
+    if (file.exists(output_file) == FALSE) {
+            write.table(
+              t(colnames(dataset)), output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+    }
+            write.table(
+              dataset_row, output_file, sep="\t", row.names = FALSE, 
+              col.names = FALSE, append = TRUE, quote = FALSE)
+  }
+}
+apply(merged_data,1, make_misc_file, species="teosinte",dataset=merged_data)
+```
