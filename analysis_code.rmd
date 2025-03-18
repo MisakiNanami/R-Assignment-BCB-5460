@@ -11,32 +11,64 @@ output:
 
 I ran the following code to analyze the fang_et_al_genotypes.txt file.
 
+I first loaded the needed libraries and cleared the workspace.
+
 ```{R}
-# Loaded needed libraries
+rm(list = ls())
 library(tidyr)
 library(tidyverse)
+```
 
-# Saved file data as a dataframe
+
+
+I loaded the fang_et_al_genotypes.txt for data inspection.
+
+```{R}
 file_path <- "fang_et_al_genotypes.txt"
 raw_data <- read_delim(file_path, delim="\t")
+```
 
-# I checked how large the file size is in MB
+
+
+I checked how large the file size is in MB
+
+```{R}
 file_size <- file.info(file_path)[1,1]/1000000
 print(file_size)
+```
 
-# I inspected the data frame dimensions (returns rows and columns)
+
+
+I inspected the data frame dimensions (returns rows and columns)
+
+```{R}
 dim(raw_data)
+```
 
-# I checked the first few and last few lines of the file to check for metadata
+
+
+I checked the first few and last few lines of the file to check for metadata
+
+```{R}
 head(raw_data)
 tail(raw_data)
+```
 
-# I checked the file encoding using the unix command
+
+
+I checked the file encoding using the unix command
+
+```{R}
 command <- sprintf("file %s",file_path)
-system(command)
+command_output <- system(command, intern = TRUE)
+print(command_output)
+```
 
-# I also checked the head and tail data for the last columns since 
-# it was cutoff previously.
+
+
+I also checked the head and tail data for the last columns since it was cutoff previously.
+
+```{R}
 get_last_columns <- function(data, columns_to_return = 9) {
   last_column <- ncol(data)
   last_n_columns <- data.frame(data[,(last_column-columns_to_return+1):last_column])
@@ -46,8 +78,13 @@ last_columns_data <- get_last_columns(raw_data)
 
 head(last_columns_data)
 tail(last_columns_data)
+```
 
-# I checked to see if any of the SNPs had no missing data and I also checked for maximums and minimums
+
+
+I checked to see if any of the SNPs had no missing data and I also checked for maximums and minimums
+
+```{R}
 count_missing <- function(data) {
   length(grep("\\?",data))
 }
@@ -55,9 +92,13 @@ SNP_missing_count <- sapply(raw_data[,4:ncol(raw_data)],count_missing)
 tabulated_SNP<- sort(SNP_missing_count)
 head(tabulated_SNP, n = 3)
 tail(tabulated_SNP, n = 3)
+```
 
-# I checked if there were any samples which did not have missing data as well as finding the
-# samples with the most and least missing data.
+
+
+I checked if there were any samples which did not have missing data as well as finding the samples with the most and least missing data.
+
+```{R}
 sample_missing_count <- apply(raw_data,1,count_missing)
 row_names <- unlist(raw_data[,1],use.names = FALSE)
 names(sample_missing_count) <- row_names
@@ -65,13 +106,20 @@ head(sample_missing_count, n=10)
 sample_missing_count[sample_missing_count == 0]
 sample_missing_count[sample_missing_count == max(sample_missing_count)]
 sample_missing_count[sample_missing_count == min(sample_missing_count)]
+```
 
-# I checked what the most common gene groups were:
+
+
+I checked what the most common gene groups were:
+
+```{R}
 groups <- unlist(raw_data[,3],use.names = FALSE)
 tabulated_groups<- sort(table(groups))
 head(tabulated_groups, n = 3)
 tail(tabulated_groups, n = 3)
 ```
+
+
 
 By inspecting this file I learned that:
 
@@ -86,30 +134,54 @@ By inspecting this file I learned that:
 
 ### Attributes of `snp_position.txt`
 
-I ran the following code to analyze the snp_position.txt file.
+I ran the following code to analyze the snp_position.txt file. I first saved the file data as a dataframe
 
 ```{R}
-# Saved file data as a dataframe
 file_path <- "snp_position.txt"
 raw_data <- read_delim(file_path, delim="\t")
+```
 
-# I checked how large the file size is in MB
+
+
+I checked how large the file size is in MB.
+
+```{R}
 file_size <- file.info(file_path)[1,1]/1000000
 print(file_size)
+```
 
-# I inspected the data frame dimensions (returns rows and columns)
+
+
+I inspected the data frame dimensions (returns rows and columns)
+
+```{R}
 dim(raw_data)
+```
 
-# I checked the first few and last few lines of the file to check for metadata
+
+
+I checked the first few and last few lines of the file to check for metadata
+
+```{R}
 head(raw_data)
 tail(raw_data)
+```
 
-# I checked the file encoding using the unix command
+
+
+I checked the file encoding using the unix command.
+
+```{R}
 command <- sprintf("file %s",file_path)
-system(command)
+command_output <- system(command, intern = TRUE)
+print(command_output)
+```
 
-# I also checked the head and tail data for the last columns since 
-# it was cutoff previously.
+
+
+I also checked the head and tail data for the last columns since it was cutoff previously.
+
+```{R}
 get_last_columns <- function(data, columns_to_return = 9) {
   last_column <- ncol(data)
   last_n_columns <- data.frame(data[,(last_column-columns_to_return+1):last_column])
@@ -119,19 +191,31 @@ last_columns_data <- get_last_columns(raw_data)
 
 head(last_columns_data)
 tail(last_columns_data)
+```
 
-# I checked what the most common chromosomes were:
+
+
+I checked what the most common chromosomes were:
+
+```{R}
 chromosomes <- unlist(raw_data[,3],use.names = FALSE)
 tabulated_chromosomes<- sort(table(chromosomes))
 head(tabulated_chromosomes, n = 3)
 tail(tabulated_chromosomes, n = 3)
+```
 
-# I checked what the most common genes were:
+
+
+I checked what the most common genes were:
+
+```{R}
 genes <- unlist(raw_data[,9],use.names = FALSE)
 tabulated_genes<- sort(table(genes))
 head(tabulated_genes, n = 3)
 tail(tabulated_genes, n = 3)
 ```
+
+
 
 By inspecting this file I learned that:
 
@@ -157,6 +241,8 @@ output_dir <- paste(main_dir,sub_dir, sep="/")
 unlink(output_dir, recursive = TRUE)
 ```
 
+
+
 I next create the output folders and the increasing/decreasing subfolders for the desired output files.
 
 ```{R}
@@ -165,6 +251,8 @@ sub_dir <- c("increasing","decreasing")
 list_of_paths <- paste(main_dir,sub_dir, sep="/")
 sapply(list_of_paths,dir.create, recursive = TRUE)
 ```
+
+
 
 I next prepare the raw data from fang_et_al_genotypes.txt by extracting it the desired columns, arranging them, and transposing them.
 
@@ -179,6 +267,8 @@ head(extracted_data)
 head(transposed_data)
 ```
 
+
+
 I next load the data from the snp_position.tx file and merge the desired columns with the extracted fang_et_al_genotypes.txt data.
 
 ```{R}
@@ -188,12 +278,16 @@ merged_data <- as_tibble(merged_data)
 head(merged_data)
 ```
 
+
+
 I sorted the data based on position, making sure to convert position to numeric before doing so. 
 
 ```{R}
 merged_data$Position <- as.numeric(merged_data$Position)
 merged_data <- arrange(merged_data, `Position`)
 ```
+
+
 
 I next generated the chromosome files for chromsomes 1-10 for the increasing position order, omitting the NA entries that correspond to multiple or unknown chromosome positions.
 
@@ -217,12 +311,16 @@ merged_data_filtered <- filter(merged_data, !is.na(Position))
 apply(merged_data_filtered,1,make_chromosome_file,species="maize",order="increasing", missing_marker="\\?",dataset=merged_data_filtered)
 ```
 
+
+
 I next prepared the chromsome files for decreasing position order, making sure to specify the missing marker symbol as "-" not the "?" symbol.
 
 ```{R}
 merged_data_filtered <- arrange(merged_data_filtered, desc(`Position`))
 apply(merged_data_filtered,1,make_chromosome_file,species="maize",order="decreasing", missing_marker="\\-",dataset=merged_data_filtered)
 ```
+
+
 
 I next prepared the chromosome files for the multiple and unknown positions.
 
@@ -263,6 +361,8 @@ output_dir <- paste(main_dir,sub_dir, sep="/")
 unlink(output_dir, recursive = TRUE)
 ```
 
+
+
 I next create the output folders and the increasing/decreasing subfolders for the desired output files.
 
 ```{R}
@@ -271,6 +371,8 @@ sub_dir <- c("increasing","decreasing")
 list_of_paths <- paste(main_dir,sub_dir, sep="/")
 sapply(list_of_paths,dir.create, recursive = TRUE)
 ```
+
+
 
 I next prepare the raw data from fang_et_al_genotypes.txt by extracting it the desired columns, arranging them, and transposing them.
 
@@ -285,6 +387,8 @@ head(extracted_data)
 head(transposed_data)
 ```
 
+
+
 I next load the data from the snp_position.tx file and merge the desired columns with the extracted fang_et_al_genotypes.txt data.
 
 ```{R}
@@ -294,12 +398,16 @@ merged_data <- as_tibble(merged_data)
 head(merged_data)
 ```
 
+
+
 I sorted the data based on position, making sure to convert position to numeric before doing so. 
 
 ```{R}
 merged_data$Position <- as.numeric(merged_data$Position)
 merged_data <- arrange(merged_data, `Position`)
 ```
+
+
 
 I next generated the chromosome files for chromsomes 1-10 for the increasing position order, omitting the NA entries that correspond to multiple or unknown chromosome positions.
 
@@ -320,15 +428,21 @@ make_chromosome_file <- function(dataset_row, species, order, missing_marker, da
 }
 
 merged_data_filtered <- filter(merged_data, !is.na(Position))
-apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="increasing", missing_marker="\\?",dataset=merged_data_filtered)
+apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="increasing", 
+missing_marker="\\?",dataset=merged_data_filtered)
 ```
+
+
 
 I next prepared the chromsome files for decreasing position order, making sure to specify the missing marker symbol as "-" not the "?" symbol.
 
 ```{R}
 merged_data_filtered <- arrange(merged_data_filtered, desc(`Position`))
-apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="decreasing", missing_marker="\\-",dataset=merged_data_filtered)
+apply(merged_data_filtered,1,make_chromosome_file,species="teosinte",order="decreasing", 
+missing_marker="\\-",dataset=merged_data_filtered)
 ```
+
+
 
 I next prepared the chromosome files for the multiple and unknown positions.
 
@@ -355,3 +469,198 @@ make_misc_file <- function(dataset_row, species,dataset){
 }
 apply(merged_data,1, make_misc_file, species="teosinte",dataset=merged_data)
 ```
+
+## Data Visualization
+
+### SNPs per chromosome
+
+I first investigated the distribution of SNPs between chromosomes by plotting number of SNPs per chromosome for both maize and teosinte.
+
+```{R}
+# Load maize data.
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+extracted_data <- filter(raw_data, `Group` %in% c("ZMMIL", "ZMMLR", "ZMMMR"))
+extracted_data <- arrange(extracted_data, `Sample_ID`)
+transposed_data <- as_tibble(t(extracted_data[,4:ncol(extracted_data)]),rownames = "SNP_ID")
+colnames(transposed_data) <- c("SNP_ID",unlist(extracted_data[1:nrow(extracted_data),1]), use.names = FALSE)
+snp_data = read_delim("snp_position.txt", "\t")
+merged_data <- merge(snp_data[,c(1,3,4)], transposed_data, by="SNP_ID", all = TRUE)
+merged_data <- as_tibble(merged_data)
+merged_data$Position <- as.numeric(merged_data$Position)
+merged_data <- arrange(merged_data, `Position`)
+maize_merged_data <- pivot_longer(
+  merged_data,
+  cols = 4:ncol(merged_data),
+  values_to = "SNP"
+)
+
+proper_chromosome_order <- c(
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "multiple", "unknown"
+)
+ggplot(data = maize_merged_data) + geom_bar(mapping = aes(x=Chromosome)) +
+scale_x_discrete(limits = proper_chromosome_order)+
+ggtitle("Maize SNP Distribution Between Chromosomes")+
+theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{R}
+# Load teosinte data.
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+extracted_data <- filter(raw_data, `Group` %in% c("ZMPBA", "ZMPIL", "ZMPJA"))
+extracted_data <- arrange(extracted_data, `Sample_ID`)
+transposed_data <- as_tibble(t(extracted_data[,4:ncol(extracted_data)]),rownames = "SNP_ID")
+colnames(transposed_data) <- c("SNP_ID",unlist(extracted_data[1:nrow(extracted_data),1]), use.names = FALSE)
+snp_data = read_delim("snp_position.txt", "\t")
+merged_data <- merge(snp_data[,c(1,3,4)], transposed_data, by="SNP_ID", all = TRUE)
+merged_data <- as_tibble(merged_data)
+merged_data$Position <- as.numeric(merged_data$Position)
+merged_data <- arrange(merged_data, `Position`)
+teosinte_merged_data <- pivot_longer(
+  merged_data,
+  cols = 4:ncol(merged_data),
+  values_to = "SNP"
+)
+
+proper_chromosome_order <- c(
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "multiple", "unknown"
+)
+ggplot(data = teosinte_merged_data) + geom_bar(mapping = aes(x=Chromosome)) +
+scale_x_discrete(limits = proper_chromosome_order) +
+ggtitle("Teosinte SNP Distribution Between Chromosomes")+
+theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+From the data, it looks like they have the same distribution of SNPs across chromosomes. However, maize has more SNPs per position as the number of columns in the dataframe is larger (1576) compared to teosinte vs. (978).
+
+I next investigated the distribution of SNPs on the chromsomes by plotting the number of SNPs per position on each chromosome for both maize and teosinte.
+
+```{R}
+ggplot(data = maize_merged_data) + 
+  geom_density(aes(x=Position, color=Chromosome,y = after_stat(count))) + 
+  theme_minimal()+
+  ggtitle("Maize SNP Distribution on Chromosomes")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{R}
+ggplot(data = teosinte_merged_data) + 
+  geom_density(aes(x=Position, color=Chromosome,y = after_stat(count))) + 
+  theme_minimal()+
+  ggtitle("Teosinte SNP Distribution on Chromosomes")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+From the data, it looks like the distributions are the same between maize and teosinte. This is somewhat expected since the SNP positions are the same between them. Some notable observations are that chromosome 7 appears to have its SNP positions more heavily concentrated in the middl while chromosome 1 appears to have a bimodal distribution with the SNPs being more highly concentrated at the ends.
+
+### Missing data and amount of heterozygosity
+
+I next investigated the proportion of homozygous, heterozygous, and missing data sites in each sample and each group.
+
+```{R}
+# Load data
+file_path <- "fang_et_al_genotypes.txt"
+raw_data <- read_delim(file_path, delim="\t")
+raw_data_long <- pivot_longer(
+  raw_data,
+  cols = 4:ncol(raw_data),
+  values_to = "SNP"
+)
+
+# Find SNP type
+find_snp_type <- function(SNP){
+  SNP_string <- toString(SNP)
+  SNP_positions <- strsplit(SNP_string,split="")
+  position_1 <- SNP_positions[[1]][1]
+  position_2 <- SNP_positions[[1]][3]
+  if (position_1 == "?" | position_2 == "?"){
+    return("missing")
+  }
+  else if (position_1 == position_2){
+    return("homozygous")
+  }
+  else if (position_1 != position_2){
+    return("heterozygous")
+  }
+}
+vectorized_find <- Vectorize(find_snp_type) # Needed to properly extract point mutations for each SNP.
+raw_data_long <- mutate(
+  raw_data_long,
+  SNP_type = vectorized_find(SNP)
+)
+
+# Plot data
+ggplot(data = raw_data_long) + 
+  geom_bar(mapping = aes(x = Group, fill = SNP_type), position = "fill")+
+  ggtitle("SNP Type Distribution Between Groups")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+```
+
+```{R}
+ggplot(data = raw_data_long) + 
+  geom_bar(mapping = aes(x = Sample_ID, fill = SNP_type), position = "fill")+
+  ggtitle("SNP Type Distribution Between Groups")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_blank(), 
+      axis.ticks.x = element_blank(), 
+      axis.line.x = element_blank())
+```
+
+
+
+From the data, it looks like the proportion of heterozygosity, homozygosity, and missing data doesn't vary too significantly among groups and samples. However, there are outliers like TRIPS which has an increased proportion of missing data and ZMMIL which has almost no heterozygous SNPs.
+
+### My Own Visualization
+
+For my own visualization, I decided to investigate the proportion of homozygous, heterozygous, and missing data sites across chromosomes for both Maize and Teosinte.
+
+```{R}
+merged_data_long <- pivot_longer(
+  maize_merged_data,
+  cols = 4:ncol(maize_merged_data),
+  values_to = "SNP"
+)
+merged_data_long <- mutate(
+  merged_data_long,
+  SNP_type = vectorized_find(SNP)
+)
+head(merged_data_long)
+
+# Plot data
+ggplot(data = merged_data_long) + 
+  geom_bar(mapping = aes(x = Chromosome, fill = SNP_type), position = "fill") +
+  scale_x_discrete(limits = proper_chromosome_order)+
+  ggtitle("Maize SNP Type Distribution Between Chromosomes")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+```
+```{R}
+merged_data_long <- pivot_longer(
+  teosinte_merged_data,
+  cols = 4:ncol(teosinte_merged_data),
+  values_to = "SNP"
+)
+merged_data_long <- mutate(
+  merged_data_long,
+  SNP_type = vectorized_find(SNP)
+)
+head(merged_data_long)
+
+# Plot data
+ggplot(data = merged_data_long) + 
+  geom_bar(mapping = aes(x = Chromosome, fill = SNP_type), position = "fill") +
+  scale_x_discrete(limits = proper_chromosome_order)+
+  ggtitle("Maize SNP Type Distribution Between Chromosomes")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+```
+
+
+
+From the data, it looks like there is no major difference between the SNP distribution for teosinte and maize, but it does seem like they have a low proportion of missing data and a high proportion of heterozygosity.
